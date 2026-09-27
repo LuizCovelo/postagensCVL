@@ -323,21 +323,13 @@
   }
 
   // ---------- YouTube ----------
-  async function publishYouTube(file){
+  async function publishYouTube(videoUrl){
     const r = await fetch('/api/youtube-init', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ title: $('yt-title').value, description: $('yt-desc').value, tags: $('yt-tags').value })
+      body: JSON.stringify({ title: $('yt-title').value, description: $('yt-desc').value, tags: $('yt-tags').value, videoUrl })
     });
-    const init = await r.json();
-    if (!init.uploadUrl) throw new Error(init.error || 'Falha ao iniciar upload do YouTube');
-
-    const up = await fetch(init.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${init.accessToken}`, 'Content-Type': file.type || 'video/mp4' },
-      body: file
-    });
-    const data = await up.json();
-    if (!up.ok) throw new Error(`YouTube: ${data.error ? data.error.message : up.status}`);
+    const data = await r.json();
+    if (!r.ok || !data.id) throw new Error(data.error ? (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)) : 'Falha ao publicar no YouTube');
     return data.id;
   }
 
@@ -382,7 +374,7 @@
       $('deleteBtn').disabled = false;
 
       log('Publicando no YouTube...');
-      const ytId = await publishYouTube(selectedFile);
+      const ytId = await publishYouTube(uploaded.rawUrl);
       log(`YouTube publicado (id: ${ytId})`, 'log-ok');
 
       log('Publicando no Instagram (pode levar até 2 min)...');
