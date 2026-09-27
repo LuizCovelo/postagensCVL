@@ -373,6 +373,9 @@
       log(`Vídeo no GitHub: ${uploaded.rawUrl}`, 'log-ok');
       $('deleteBtn').disabled = false;
 
+      log('Aguardando o GitHub disponibilizar o vídeo (30s)...');
+      await new Promise((r) => setTimeout(r, 30000));
+
       log('Publicando no YouTube...');
       const ytId = await publishYouTube(uploaded.rawUrl);
       log(`YouTube publicado (id: ${ytId})`, 'log-ok');
