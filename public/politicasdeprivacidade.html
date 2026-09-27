@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Política de Privacidade — Grupo CVL Soluções Tecnológicas</title>
+<style>
+  :root{
+    --bg:#0F1417; --panel:#171D22; --panel2:#1D242A; --line:#2A333A;
+    --text:#E7ECEE; --muted:#8FA0A8; --accent:#3ED6B0;
+    --warn:#E5A63D; --danger:#E5484D;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; min-height:100%}
+  header.topbar{padding:18px 20px calc(18px + env(safe-area-inset-top,0px)); border-bottom:1px solid var(--line)}
+  header.topbar h1{font-size:17px; margin:0; font-weight:650}
+  header.topbar .sub{color:var(--muted); font-size:13px; margin-top:2px}
+  main.doc{max-width:760px; margin:0 auto; padding:28px 20px 60px}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px 24px; margin-bottom:18px}
+  .panel h2{font-size:15px; margin:0 0 10px; font-weight:650; color:var(--text)}
+  .panel p, .panel li{font-size:13.5px; line-height:1.65; color:var(--muted)}
+  .panel ul{margin:8px 0; padding-left:20px}
+  .panel a{color:var(--accent); text-decoration:none}
+  .panel a:hover{text-decoration:underline}
+  .updated{color:var(--muted); font-size:12.5px; margin-top:-6px; margin-bottom:24px}
+  .backlink{display:inline-block; margin-bottom:18px; font-size:13px; color:var(--accent); text-decoration:none}
+  .backlink:hover{text-decoration:underline}
+  strong{color:var(--text)}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Política de Privacidade</h1>
+  <div class="sub">Grupo CVL Soluções Tecnológicas</div>
+</header>
+
+<main class="doc">
+  <a class="backlink" href="index.html">&larr; Voltar ao Painel de Publicação</a>
+  <div class="updated">Última atualização: 26 de setembro de 2026</div>
+
+  <div class="panel">
+    <h2>1. Quem somos</h2>
+    <p>Esta política se aplica ao "Painel de Publicação — Grupo CVL", uma ferramenta interna desenvolvida e operada pelo <strong>Grupo CVL Soluções Tecnológicas</strong> para automatizar a publicação de vídeos e conteúdos em plataformas de terceiros (YouTube, Instagram e Facebook) em nome de seus próprios usuários e/ou clientes autorizados.</p>
+  </div>
+
+  <div class="panel">
+    <h2>2. Quais dados o aplicativo acessa e por quê</h2>
+    <p>Para funcionar, o aplicativo solicita autorização (via OAuth) para acessar as seguintes contas e escopos, exclusivamente para realizar publicações solicitadas pelo próprio usuário:</p>
+    <ul>
+      <li><strong>YouTube (Google/YouTube Data API v3, escopo <code>youtube.upload</code>):</strong> permissão para enviar vídeos, título, descrição e tags ao canal do YouTube conectado pelo usuário.</li>
+      <li><strong>Instagram e Facebook (Graph API):</strong> permissão para publicar vídeos e legendas nas páginas/contas conectadas pelo usuário.</li>
+    </ul>
+    <p>O aplicativo <strong>não acessa, lê ou coleta</strong> nenhum outro dado das contas conectadas além do estritamente necessário para publicar o conteúdo enviado pelo próprio usuário através do painel.</p>
+  </div>
+
+  <div class="panel">
+    <h2>3. Armazenamento dos dados</h2>
+    <p>Os vídeos enviados são armazenados temporariamente em um repositório privado no GitHub, usado apenas como intermediário técnico para disponibilizar o arquivo às APIs do Instagram e Facebook, podendo ser apagados manualmente pelo usuário logo após a publicação.</p>
+    <p>Credenciais de acesso (tokens) inseridas no painel ficam salvas apenas no armazenamento local do navegador do próprio usuário (localStorage), e não são enviadas a nenhum servidor além das próprias plataformas (Google, Meta e GitHub) para realizar as publicações.</p>
+  </div>
+
+  <div class="panel">
+    <h2>4. Compartilhamento de dados</h2>
+    <p>Não vendemos, alugamos ou compartilhamos dados de nenhuma conta conectada com terceiros. Os dados trafegam apenas entre o navegador do usuário e as APIs oficiais do Google, Meta e GitHub, exclusivamente para executar a publicação solicitada.</p>
+  </div>
+
+  <div class="panel">
+    <h2>5. Revogação de acesso</h2>
+    <p>O usuário pode revogar a qualquer momento o acesso concedido a este aplicativo diretamente nas configurações de segurança da sua Conta Google (<a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>) ou do Meta Business Suite, conforme a plataforma conectada.</p>
+  </div>
+
+  <div class="panel">
+    <h2>6. Contato</h2>
+    <p>Dúvidas sobre esta política ou sobre o uso de dados podem ser enviadas para: <strong>[SEU-EMAIL-AQUI]</strong>.</p>
+  </div>
+</main>
+
+</body>
+</html>
