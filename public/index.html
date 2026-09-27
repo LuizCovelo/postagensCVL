@@ -329,7 +329,10 @@
       body: JSON.stringify({ title: $('yt-title').value, description: $('yt-desc').value, tags: $('yt-tags').value, videoUrl })
     });
     const data = await r.json();
-    if (!r.ok || !data.id) throw new Error(data.error ? (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)) : 'Falha ao publicar no YouTube');
+    if (!r.ok || !data.id) {
+      const detail = data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details)) : '';
+      throw new Error(`${data.error || 'Falha ao publicar no YouTube'}${detail ? ' — ' + detail : ''}`);
+    }
     return data.id;
   }
 
@@ -373,8 +376,13 @@
       log(`Vídeo no GitHub: ${uploaded.rawUrl}`, 'log-ok');
       $('deleteBtn').disabled = false;
 
-      log('Aguardando o GitHub disponibilizar o vídeo (30s)...');
-      await new Promise((r) => setTimeout(r, 30000));
+      const waitSeconds = 100;
+      log(`Aguardando o GitHub disponibilizar o vídeo (${waitSeconds}s)...`);
+      for (let elapsed = 0; elapsed < waitSeconds; elapsed += 15) {
+        await new Promise((r) => setTimeout(r, 15000));
+        const remaining = waitSeconds - (elapsed + 15);
+        if (remaining > 0) log(`Ainda aguardando... faltam ${remaining}s`);
+      }
 
       log('Publicando no YouTube...');
       const ytId = await publishYouTube(uploaded.rawUrl);
