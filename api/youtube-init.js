@@ -26,10 +26,19 @@ export default async function handler(req, res) {
     }
     const accessToken = tokenData.access_token;
 
-    // 2. Baixar o vídeo do GitHub (servidor a servidor, sem CORS)
-    const videoRes = await fetch(videoUrl);
-    if (!videoRes.ok) {
-      return res.status(500).json({ error: 'Falha ao baixar o vídeo do GitHub', details: `status ${videoRes.status}` });
+    // 2. Baixar o vídeo do GitHub (servidor a servidor, sem CORS).
+    // O CDN do GitHub (raw.githubusercontent.com) pode demorar alguns segundos
+    // para propagar um arquivo recém-enviado, então tentamos algumas vezes.
+    let videoRes = null;
+    let lastStatus = null;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      videoRes = await fetch(videoUrl, { cache: 'no-store' });
+      lastStatus = videoRes.status;
+      if (videoRes.ok) break;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    if (!videoRes || !videoRes.ok) {
+      return res.status(500).json({ error: 'Falha ao baixar o vídeo do GitHub', details: `status ${lastStatus} após 5 tentativas` });
     }
     const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
     const contentType = videoRes.headers.get('content-type') || 'video/mp4';
