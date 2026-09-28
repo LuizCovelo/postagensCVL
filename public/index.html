@@ -363,6 +363,7 @@
     const r = await fetch('/api/facebook-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoUrl, caption }) });
     const data = await r.json();
     if (!data.id) throw new Error(data.error || 'Falha ao publicar no Facebook');
+    log(data.cta ? 'Botão de WhatsApp aplicado no Facebook.' : `Facebook não aceitou o botão de WhatsApp (${data.ctaError || 'sem detalhe'}). Publicado sem botão.`, data.cta ? 'log-ok' : 'log-err');
     return data.id;
   }
 
