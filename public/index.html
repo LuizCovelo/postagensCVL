@@ -131,6 +131,13 @@
       </div>
     </div>
 
+    <div class="card">
+      <h3><span class="dot" style="background:#0a66c2"></span>LinkedIn (perfil pessoal)</h3>
+      <label class="checkline"><input type="checkbox" id="li-enabled" checked> Publicar também no LinkedIn (usa o mesmo texto do Instagram)</label>
+      <div class="filehint" id="li-status">Não conectado.</div>
+      <div class="row"><button id="li-connect" type="button">Conectar LinkedIn</button></div>
+    </div>
+
     <div class="sendbar">
       <div class="row">
         <button class="primary" id="publishBtn">Publicar nas 3 plataformas</button>
@@ -367,6 +374,47 @@
     return data.id;
   }
 
+  // ---------- LinkedIn ----------
+  const LI_KEY = 'cvl-linkedin';
+  function liLoad(){ try{ return JSON.parse(localStorage.getItem(LI_KEY)||'null'); }catch(e){ return null; } }
+  function liStatus(){
+    const li = liLoad();
+    const el = $('li-status');
+    if (!li || !li.token){ el.textContent = 'Não conectado.'; $('li-connect').textContent = 'Conectar LinkedIn'; return; }
+    const days = Math.floor((li.expiresAt - Date.now())/86400000);
+    if (days < 0){ el.textContent = 'Conexão expirada. Clique para reconectar.'; $('li-connect').textContent = 'Reconectar LinkedIn'; }
+    else { el.textContent = `Conectado${li.name ? ' como ' + li.name : ''}. Expira em ${days} dia(s).`; $('li-connect').textContent = days <= 7 ? 'Reconectar LinkedIn (perto de expirar)' : 'Reconectar LinkedIn'; }
+  }
+  function liHandleReturn(){
+    if (!location.hash.includes('li_')) return;
+    const h = new URLSearchParams(location.hash.slice(1));
+    history.replaceState(null, '', location.pathname + location.search);
+    if (h.get('li_error')){ log(`Erro ao conectar LinkedIn: ${h.get('li_error')}`, 'log-err'); return; }
+    if (h.get('li_token')){
+      if (h.get('li_state') !== sessionStorage.getItem('li-state')){ log('Conexão do LinkedIn recusada (state inválido). Tente de novo.', 'log-err'); return; }
+      localStorage.setItem(LI_KEY, JSON.stringify({ token: h.get('li_token'), sub: h.get('li_sub'), name: h.get('li_name'), expiresAt: Date.now() + Number(h.get('li_exp')) * 1000 }));
+      log('LinkedIn conectado com sucesso.', 'log-ok');
+    }
+  }
+  $('li-connect').addEventListener('click', ()=>{
+    const state = crypto.randomUUID();
+    sessionStorage.setItem('li-state', state);
+    location.href = '/api/linkedin-login?state=' + encodeURIComponent(state);
+  });
+  async function publishLinkedIn(videoUrl, caption){
+    const li = liLoad();
+    const r = await fetch('/api/linkedin-publish', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ videoUrl, caption, title: $('yt-title').value, token: li.token, personId: li.sub }) });
+    const data = await r.json();
+    if (!r.ok || !data.id){
+      const detail = data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details)) : '';
+      if (r.status === 401) localStorage.removeItem(LI_KEY), liStatus();
+      throw new Error(`${data.error || 'Falha ao publicar no LinkedIn'}${detail ? ' — ' + detail : ''}`);
+    }
+    return data.id;
+  }
+  liHandleReturn(); liStatus();
+
   // ---------- Fluxo principal ----------
   $('publishBtn').addEventListener('click', async ()=>{
     if (!selectedFile){ log('Selecione um vídeo primeiro.', 'log-err'); return; }
@@ -397,7 +445,20 @@
       const fbId = await publishFacebook(uploaded.rawUrl, $('fb-caption').value);
       log(`Facebook publicado (id: ${fbId})`, 'log-ok');
 
-      log('Concluído nas 3 plataformas. Você já pode apagar o vídeo do GitHub.', 'log-ok');
+      const li = liLoad();
+      if ($('li-enabled').checked){
+        if (li && li.token && li.expiresAt > Date.now()){
+          log('Publicando no LinkedIn...');
+          try{
+            const liId = await publishLinkedIn(uploaded.rawUrl, $('ig-caption').value);
+            log(`LinkedIn publicado (id: ${liId}). Vídeos podem levar alguns minutos para aparecer.`, 'log-ok');
+          }catch(e){ log(`Erro no LinkedIn: ${e.message}`, 'log-err'); }
+        } else {
+          log('LinkedIn não conectado (ou expirado): pulando. Clique em "Conectar LinkedIn".', 'log-err');
+        }
+      }
+
+      log('Concluído. Você já pode apagar o vídeo do GitHub.', 'log-ok');
     }catch(e){
       log(`Erro: ${e.message}`, 'log-err');
     }finally{
