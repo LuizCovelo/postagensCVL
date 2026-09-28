@@ -51,13 +51,35 @@
   .sendbar .row{display:flex; gap:10px; flex-wrap:wrap}
   #log{background:var(--panel2); border:1px solid var(--line); border-radius:7px; padding:10px; font-size:12.5px; color:var(--muted); max-height:220px; overflow-y:auto; white-space:pre-wrap; font-family:ui-monospace,Menlo,Consolas,monospace}
   .log-ok{color:var(--accent)} .log-err{color:var(--danger)}
+
+  .seg{display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; position:relative}
+  .seg label{flex:1; text-align:center; padding:9px 8px; cursor:pointer; font-size:13.5px; color:var(--muted); background:var(--panel2)}
+  .seg input{position:absolute; opacity:0; pointer-events:none}
+  .seg label:has(input:checked){background:var(--accent); color:#062621; font-weight:650}
+  .seg label:has(input:focus-visible){outline:2px solid var(--accent); outline-offset:-2px}
+  #imgList{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px}
+  .thumb{position:relative; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:5px; cursor:grab}
+  .thumb.dragover{outline:2px dashed var(--accent)}
+  .thumb.dragging{opacity:.4}
+  .thumb img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:5px; display:block; pointer-events:none}
+  .thumb .num{position:absolute; top:9px; left:9px; background:var(--accent); color:#062621; font-weight:700; font-size:12px; min-width:20px; height:20px; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:0 5px}
+  .thumb .nm{font-size:11px; color:var(--muted); margin:4px 1px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .thumb .warnimg{font-size:11px; color:var(--warn); margin:2px 1px 0}
+  .thumb .tbar{display:flex; gap:4px; margin-top:5px}
+  .thumb .tbar button{flex:1; padding:5px 0; font-size:12px}
+  .nets{display:flex; flex-wrap:wrap; gap:8px 16px}
+  .nets label{display:flex; align-items:center; gap:6px; font-size:13.5px}
+  .nets label.off{opacity:.45}
+  .card.dim{opacity:.5}
+  .msg-err{color:var(--danger); font-size:12.5px}
+  [hidden]{display:none !important}
 </style>
 </head>
 <body>
 
 <header class="topbar">
   <h1>Painel de Publicação — Grupo CVL</h1>
-  <div class="sub">Cole o roteiro, revise os campos, suba o vídeo e publique nas 3 plataformas</div>
+  <div class="sub">Cole o roteiro, escolha vídeo ou imagens, marque as redes e publique</div>
 </header>
 
 <main class="layout">
@@ -72,11 +94,26 @@
     </section>
 
     <section class="panel">
-      <h2>2 · Vídeo</h2>
+      <h2>2 · Mídia</h2>
       <div class="stack">
-        <input type="file" id="videoFile" accept="video/*">
-        <div class="filehint">Máximo recomendado: 90&nbsp;MB (limite prático do GitHub para upload via API).</div>
-        <video id="videoPreview" controls></video>
+        <div class="seg" role="radiogroup" aria-label="Tipo de mídia">
+          <label><input type="radio" name="mode" value="video" checked> Vídeo</label>
+          <label><input type="radio" name="mode" value="images"> Imagens</label>
+        </div>
+
+        <div id="box-video" class="stack">
+          <input type="file" id="videoFile" accept="video/*">
+          <div class="filehint">Máximo recomendado: 90&nbsp;MB (limite prático do GitHub para upload via API).</div>
+          <video id="videoPreview" controls></video>
+        </div>
+
+        <div id="box-images" class="stack" hidden>
+          <input type="file" id="imgFiles" accept="image/jpeg,.jpg,.jpeg" multiple>
+          <div class="filehint">Só JPEG (.jpg / .jpeg), até 10 imagens e 8&nbsp;MB cada. Use ◀ ▶ (ou arraste) para ordenar: a numeração é a ordem do post.</div>
+          <div class="msg-err" id="imgErr"></div>
+          <div id="imgList"></div>
+          <div class="filehint" id="imgCount"></div>
+        </div>
       </div>
     </section>
 
@@ -98,8 +135,9 @@
   </div>
 
   <section class="platforms">
-    <div class="card">
+    <div class="card" id="card-yt">
       <h3><span class="dot yt"></span>YouTube</h3>
+      <div class="filehint" id="yt-note" hidden style="margin-bottom:10px">O YouTube só recebe vídeo. Nesta opção ele fica de fora.</div>
       <div class="field">
         <div class="flabel"><span>Título</span><span class="counter" id="cnt-yt-title">0 / 100</span></div>
         <input type="text" id="yt-title" maxlength="100">
@@ -133,17 +171,28 @@
 
     <div class="card">
       <h3><span class="dot" style="background:#0a66c2"></span>LinkedIn (perfil pessoal)</h3>
-      <label class="checkline"><input type="checkbox" id="li-enabled" checked> Publicar também no LinkedIn (usa o mesmo texto do Instagram)</label>
-      <div class="filehint" id="li-status">Não conectado.</div>
-      <div class="row"><button id="li-connect" type="button">Conectar LinkedIn</button></div>
+      <div class="filehint" id="li-status" style="margin-bottom:10px">Não conectado.</div>
+      <div class="row" style="margin-bottom:14px"><button id="li-connect" type="button">Conectar LinkedIn</button></div>
+      <div class="field">
+        <div class="flabel"><span>Rodapé (só no LinkedIn)</span><span class="counter" id="cnt-li-footer">0</span></div>
+        <textarea id="li-footer" rows="2">Fale com a gente no WhatsApp: https://wa.me/5513997595234</textarea>
+        <div class="filehint" style="margin-top:5px">Entra no fim do texto (o mesmo do Instagram). Deixe vazio para não usar.</div>
+      </div>
     </div>
 
     <div class="sendbar">
-      <div class="row">
-        <button class="primary" id="publishBtn">Publicar nas 3 plataformas</button>
-        <button class="danger" id="deleteBtn" disabled>Apagar vídeo do GitHub</button>
+      <div class="flabel" style="margin:0"><span>Publicar em</span></div>
+      <div class="nets" id="nets">
+        <label id="lbl-yt"><input type="checkbox" id="net-yt" checked> YouTube</label>
+        <label><input type="checkbox" id="net-ig" checked> Instagram</label>
+        <label><input type="checkbox" id="net-fb" checked> Facebook</label>
+        <label><input type="checkbox" id="net-li" checked> LinkedIn</label>
       </div>
-      <div id="log">Pronto. Preencha os campos, suba o vídeo e clique em Publicar.</div>
+      <div class="row">
+        <button class="primary" id="publishBtn">Publicar</button>
+        <button class="danger" id="nextBtn" title="Apaga vídeo e imagens do GitHub e limpa o painel">Próximo post</button>
+      </div>
+      <div id="log">Pronto. Preencha os campos, escolha a mídia e clique em Publicar.</div>
     </div>
   </section>
 </main>
@@ -155,10 +204,24 @@
 <script>
 (function(){
   const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
   const fields = ['yt-title','yt-desc','yt-tags','ig-caption','fb-caption'];
+  const draftFields = fields.concat(['li-footer']);
   const ghFields = ['gh-token','gh-owner','gh-repo','gh-branch','gh-path'];
-  let selectedFile = null;
-  let uploaded = null; // {path, sha, rawUrl}
+  const NETS = ['yt','ig','fb','li'];
+  const NET_NAME = { yt:'YouTube', ig:'Instagram', fb:'Facebook', li:'LinkedIn' };
+  const FOOTER_DEFAULT = $('li-footer').value;
+  const MAX_IMAGES = 10, MAX_IMG_BYTES = 8 * 1024 * 1024;
+
+  let mode = 'video';          // 'video' | 'images'
+  let selectedFile = null;     // vídeo escolhido
+  let images = [];             // [{file, url, name, ratio}] na ordem do post
+  let current = null;          // {mode, urls:[...]} já enviado ao GitHub para este post
+  let posted = {};             // {yt:true, ig:true, ...} redes já publicadas neste post
+  let busy = false;
+  let ghFiles = [];            // tudo que está no GitHub e ainda não foi apagado
+  try{ ghFiles = JSON.parse(localStorage.getItem('cvl-gh-files') || '[]'); }catch(e){}
+  const saveGhFiles = () => { try{ localStorage.setItem('cvl-gh-files', JSON.stringify(ghFiles)); }catch(e){} };
 
   // ---------- Log ----------
   function log(msg, cls){
@@ -170,7 +233,7 @@
     el.scrollTop = el.scrollHeight;
   }
 
-  // ---------- Parser (mesmo do rascunho anterior) ----------
+  // ---------- Parser ----------
   function parseContent(raw){
     const lines = raw.split(/\r?\n/);
     const headerRe = /(YouTube|Instagram|Facebook)\s*[—-]\s*(.+)/i;
@@ -221,15 +284,15 @@
 
   // ---------- Contadores ----------
   const limits = { 'yt-title':100, 'yt-tags':500, 'ig-caption':2200 };
+  const counterId = { 'yt-title':'cnt-yt-title','yt-desc':'cnt-yt-desc','yt-tags':'cnt-yt-tags','ig-caption':'cnt-ig','fb-caption':'cnt-fb','li-footer':'cnt-li-footer' };
   function updateCounter(id){
     const len = $(id).value.length;
-    const cid = { 'yt-title':'cnt-yt-title','yt-desc':'cnt-yt-desc','yt-tags':'cnt-yt-tags','ig-caption':'cnt-ig','fb-caption':'cnt-fb' }[id];
-    const c = $(cid); const lim = limits[id];
+    const c = $(counterId[id]); const lim = limits[id];
     c.textContent = lim ? `${len} / ${lim}` : `${len}`;
     c.classList.remove('warn','over');
     if (lim){ if (len>=lim) c.classList.add('over'); else if (len>=lim*0.9) c.classList.add('warn'); }
   }
-  fields.forEach(id=> $(id).addEventListener('input', ()=>{ updateCounter(id); saveDraft(); }));
+  draftFields.forEach(id=> $(id).addEventListener('input', ()=>{ updateCounter(id); saveDraft(); }));
   function syncFacebook(){
     const sync = $('fb-sync').checked;
     $('fb-caption').disabled = sync;
@@ -239,13 +302,110 @@
   $('fb-sync').addEventListener('change', ()=>{ syncFacebook(); saveDraft(); });
   $('ig-caption').addEventListener('input', ()=>{ if ($('fb-sync').checked) $('fb-caption').value = $('ig-caption').value; updateCounter('fb-caption'); });
 
+  // ---------- Redes e tipo de mídia ----------
+  function selectedNets(){
+    return NETS.filter(n => $('net-'+n).checked && !(n==='yt' && mode==='images'));
+  }
+  function refreshUi(){
+    const isImg = mode === 'images';
+    $('box-video').hidden = isImg;
+    $('box-images').hidden = !isImg;
+    $('net-yt').disabled = isImg;
+    $('lbl-yt').classList.toggle('off', isImg);
+    $('card-yt').classList.toggle('dim', isImg);
+    $('yt-note').hidden = !isImg;
+    const n = selectedNets().length;
+    $('publishBtn').textContent = n ? `Publicar em ${n} rede${n>1?'s':''}` : 'Publicar';
+  }
+  document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', ()=>{
+    if (busy){ document.querySelector(`input[name="mode"][value="${mode}"]`).checked = true; return; }
+    mode = r.value; refreshUi(); saveDraft();
+  }));
+  NETS.forEach(n => $('net-'+n).addEventListener('change', ()=>{ refreshUi(); saveDraft(); }));
+
   // ---------- Vídeo ----------
   $('videoFile').addEventListener('change', e=>{
-    selectedFile = e.target.files[0];
+    selectedFile = e.target.files[0] || null;
     const v = $('videoPreview');
     if (selectedFile){ v.src = URL.createObjectURL(selectedFile); v.style.display='block'; }
-    uploaded = null; $('deleteBtn').disabled = true;
+    else { v.removeAttribute('src'); v.style.display='none'; }
+    invalidate();
   });
+
+  // ---------- Imagens (só JPEG, com ordem) ----------
+  async function looksLikeJpeg(file){
+    const b = new Uint8Array(await file.slice(0,3).arrayBuffer());
+    return b[0]===0xFF && b[1]===0xD8 && b[2]===0xFF;
+  }
+  function readRatio(url){
+    return new Promise(res=>{ const i = new Image(); i.onload = ()=>res(i.naturalWidth / i.naturalHeight); i.onerror = ()=>res(null); i.src = url; });
+  }
+  $('imgFiles').addEventListener('change', async e=>{
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    const errs = [];
+    for (const f of files){
+      if (images.length >= MAX_IMAGES){ errs.push(`${f.name}: limite de ${MAX_IMAGES} imagens`); continue; }
+      if (!/\.jpe?g$/i.test(f.name) || f.type !== 'image/jpeg' || !(await looksLikeJpeg(f))){ errs.push(`${f.name}: não é JPEG, não foi adicionada`); continue; }
+      if (f.size > MAX_IMG_BYTES){ errs.push(`${f.name}: passa de 8 MB`); continue; }
+      if (images.some(i => i.file.name === f.name && i.file.size === f.size && i.file.lastModified === f.lastModified)){ errs.push(`${f.name}: já está na lista`); continue; }
+      const url = URL.createObjectURL(f);
+      images.push({ file: f, url, name: f.name, ratio: await readRatio(url) });
+    }
+    $('imgErr').textContent = errs.join(' · ');
+    invalidate(); renderImages();
+  });
+
+  function moveImage(from, to){
+    if (to < 0 || to >= images.length || from === to) return;
+    const [it] = images.splice(from, 1);
+    images.splice(to, 0, it);
+    invalidate(); renderImages();
+  }
+  function removeImage(i){
+    URL.revokeObjectURL(images[i].url);
+    images.splice(i, 1);
+    invalidate(); renderImages();
+  }
+  function renderImages(){
+    const box = $('imgList'); box.innerHTML = '';
+    images.forEach((im, i)=>{
+      const d = document.createElement('div');
+      d.className = 'thumb'; d.draggable = true; d.dataset.i = i;
+      const num = document.createElement('span'); num.className = 'num'; num.textContent = i + 1;
+      const img = document.createElement('img'); img.src = im.url; img.alt = `Imagem ${i+1}`;
+      const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = im.name; nm.title = im.name;
+      d.append(num, img, nm);
+      if (im.ratio && (im.ratio < 0.8 || im.ratio > 1.91)){
+        const w = document.createElement('div'); w.className = 'warnimg';
+        w.textContent = 'Proporção fora do padrão do Instagram (4:5 a 1,91:1)';
+        d.append(w);
+      }
+      const bar = document.createElement('div'); bar.className = 'tbar';
+      [['◀','Mover para antes', ()=>moveImage(i,i-1), i===0],
+       ['▶','Mover para depois', ()=>moveImage(i,i+1), i===images.length-1],
+       ['✕','Remover', ()=>removeImage(i), false]].forEach(([t,label,fn,dis])=>{
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.title = label; b.setAttribute('aria-label', label);
+        b.disabled = dis; b.addEventListener('click', fn); bar.append(b);
+      });
+      d.append(bar);
+      box.append(d);
+    });
+    $('imgCount').textContent = images.length
+      ? `${images.length} imagem(ns). Instagram: ${images.length > 1 ? 'carrossel' : 'foto única'} · Facebook e LinkedIn: ${images.length > 1 ? 'grade' : 'foto única'}.`
+      : 'Nenhuma imagem escolhida.';
+  }
+  // arrastar para reordenar (computador)
+  let dragFrom = null;
+  const imgList = $('imgList');
+  imgList.addEventListener('dragstart', e=>{ const t = e.target.closest('.thumb'); if (!t) return; dragFrom = Number(t.dataset.i); t.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try{ e.dataTransfer.setData('text/plain', String(dragFrom)); }catch(_){} });
+  imgList.addEventListener('dragover', e=>{ const t = e.target.closest('.thumb'); if (!t || dragFrom === null) return; e.preventDefault(); imgList.querySelectorAll('.dragover').forEach(x=>x.classList.remove('dragover')); t.classList.add('dragover'); });
+  imgList.addEventListener('drop', e=>{ const t = e.target.closest('.thumb'); if (!t || dragFrom === null) return; e.preventDefault(); const to = Number(t.dataset.i); const from = dragFrom; dragFrom = null; moveImage(from, to); });
+  imgList.addEventListener('dragend', ()=>{ dragFrom = null; imgList.querySelectorAll('.dragging,.dragover').forEach(x=>x.classList.remove('dragging','dragover')); });
+  renderImages();
+
+  // Trocou vídeo/imagens/ordem: o que já foi enviado ao GitHub deixa de valer para este post.
+  function invalidate(){ current = null; posted = {}; }
 
   // ---------- Rascunho local ----------
   let saveTimer;
@@ -253,8 +413,9 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(()=>{
       try{
-        const data = {}; fields.forEach(id=>data[id]=$(id).value);
+        const data = {}; draftFields.forEach(id=>data[id]=$(id).value);
         data['fb-sync'] = $('fb-sync').checked; data['rawInput'] = $('rawInput').value;
+        data['mode'] = mode; data['nets'] = {}; NETS.forEach(n=>data.nets[n] = $('net-'+n).checked);
         localStorage.setItem('cvl-panel-draft', JSON.stringify(data));
       }catch(e){}
     }, 300);
@@ -263,11 +424,13 @@
     try{
       const raw = localStorage.getItem('cvl-panel-draft'); if (!raw) return;
       const data = JSON.parse(raw);
-      fields.forEach(id=>{ if (data[id]!==undefined) $(id).value = data[id]; });
+      draftFields.forEach(id=>{ if (data[id]!==undefined) $(id).value = data[id]; });
       if (data['rawInput']!==undefined) $('rawInput').value = data['rawInput'];
       if (data['fb-sync']!==undefined) $('fb-sync').checked = data['fb-sync'];
-      fields.forEach(updateCounter); syncFacebook();
+      if (data.nets) NETS.forEach(n=>{ if (data.nets[n]!==undefined) $('net-'+n).checked = data.nets[n]; });
+      if (data.mode === 'images' || data.mode === 'video'){ mode = data.mode; document.querySelector(`input[name="mode"][value="${mode}"]`).checked = true; }
     }catch(e){}
+    draftFields.forEach(updateCounter); syncFacebook();
   }
   function saveGh(){
     const data = {}; ghFields.forEach(id=>data[id]=$(id).value);
@@ -281,9 +444,9 @@
     }catch(e){}
   }
   ghFields.forEach(id=> $(id).addEventListener('input', saveGh));
-  loadDraft(); loadGh();
+  loadDraft(); loadGh(); refreshUi();
 
-  // ---------- GitHub: converter arquivo em base64 (em pedaços, sem estourar a pilha) ----------
+  // ---------- GitHub ----------
   async function fileToBase64(file){
     const buf = await file.arrayBuffer();
     const bytes = new Uint8Array(buf);
@@ -294,19 +457,20 @@
     }
     return btoa(binary);
   }
-
-  async function uploadToGitHub(file){
+  function ghConfig(){
     const token = $('gh-token').value.trim();
     const owner = $('gh-owner').value.trim();
     const repo = $('gh-repo').value.trim();
     const branch = $('gh-branch').value.trim() || 'main';
     const folder = $('gh-path').value.trim().replace(/^\/|\/$/g,'') || 'videos';
     if (!token || !owner || !repo) throw new Error('Preencha token, usuário e repositório do GitHub.');
-
-    const safeName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    return { token, owner, repo, branch, folder };
+  }
+  async function uploadToGitHub(file, prefix){
+    const { token, owner, repo, branch, folder } = ghConfig();
+    const safeName = `${Date.now()}-${prefix}${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
     const path = `${folder}/${safeName}`;
     const content = await fileToBase64(file);
-
     const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' },
@@ -314,69 +478,82 @@
     });
     const data = await r.json();
     if (!r.ok) throw new Error(`GitHub: ${data.message || r.status}`);
-
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-    return { path, sha: data.content.sha, rawUrl, owner, repo, branch };
+    const info = { path, sha: data.content.sha, owner, repo, branch };
+    ghFiles.push(info); saveGhFiles();
+    return { ...info, rawUrl: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}` };
   }
-
   async function deleteFromGitHub(info){
     const token = $('gh-token').value.trim();
-    const r = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${info.path}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' },
-      body: JSON.stringify({ message: `Remover ${info.path}`, sha: info.sha, branch: info.branch })
-    });
-    if (!r.ok){ const data = await r.json(); throw new Error(`GitHub: ${data.message || r.status}`); }
+    const url = `https://api.github.com/repos/${info.owner}/${info.repo}/contents/${info.path}`;
+    const h = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' };
+    let sha = info.sha;
+    for (let attempt = 0; attempt < 2; attempt++){
+      const r = await fetch(url, { method:'DELETE', headers:h, body: JSON.stringify({ message:`Remover ${info.path}`, sha, branch: info.branch }) });
+      if (r.ok || r.status === 404) return;
+      if (attempt === 0){
+        const g = await fetch(`${url}?ref=${encodeURIComponent(info.branch)}`, { headers:h });
+        if (g.status === 404) return;
+        if (g.ok){ sha = (await g.json()).sha; continue; }
+      }
+      const d = await r.json().catch(()=>({}));
+      throw new Error(`GitHub: ${d.message || r.status}`);
+    }
+  }
+  async function waitForUrls(urls, maxSec){
+    const start = Date.now();
+    while (Date.now() - start < maxSec * 1000){
+      const ok = await Promise.all(urls.map(u => fetch(u, { method:'HEAD', cache:'no-store' }).then(r=>r.ok).catch(()=>false)));
+      if (ok.every(Boolean)) return true;
+      await sleep(3000);
+    }
+    return false;
   }
 
-  // ---------- YouTube ----------
+  // ---------- Redes ----------
+  const errText = (data, fallback) => {
+    const detail = data && data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details)) : '';
+    return `${(data && data.error) || fallback}${detail ? ' — ' + detail : ''}`;
+  };
+  async function postJson(url, body){
+    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await r.json().catch(()=>({}));
+    return { r, data };
+  }
+
   async function publishYouTube(videoUrl){
-    const r = await fetch('/api/youtube-init', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ title: $('yt-title').value, description: $('yt-desc').value, tags: $('yt-tags').value, videoUrl })
-    });
-    const data = await r.json();
-    if (!r.ok || !data.id) {
-      const detail = data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details)) : '';
-      throw new Error(`${data.error || 'Falha ao publicar no YouTube'}${detail ? ' — ' + detail : ''}`);
-    }
+    const { r, data } = await postJson('/api/youtube-init', { title: $('yt-title').value, description: $('yt-desc').value, tags: $('yt-tags').value, videoUrl });
+    if (!r.ok || !data.id) throw new Error(errText(data, 'Falha ao publicar no YouTube'));
     return data.id;
   }
-
-  // ---------- Instagram ----------
-  async function publishInstagram(videoUrl, caption){
-    let r = await fetch('/api/instagram-create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoUrl, caption }) });
-    let data = await r.json();
-    if (!data.creationId) throw new Error(data.error || 'Falha ao criar mídia no Instagram');
+  async function publishInstagram(media, caption){
+    let { data } = await postJson('/api/instagram-create', { ...media, caption });
+    if (!data.creationId) throw new Error(errText(data, 'Falha ao criar mídia no Instagram'));
     const creationId = data.creationId;
 
     for (let i=0; i<24; i++){ // até ~2 min
-      await new Promise(res=>setTimeout(res, 5000));
+      await sleep(5000);
       const sr = await fetch(`/api/instagram-status?id=${creationId}`);
       const sd = await sr.json();
       if (sd.status_code === 'FINISHED') break;
       if (sd.status_code === 'ERROR') throw new Error('Instagram: processamento falhou');
       if (i === 23) throw new Error('Instagram: tempo de processamento excedido');
     }
-
-    r = await fetch('/api/instagram-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ creationId }) });
-    data = await r.json();
-    if (!data.id) throw new Error(data.error || 'Falha ao publicar no Instagram');
+    ({ data } = await postJson('/api/instagram-publish', { creationId }));
+    if (!data.id) throw new Error(errText(data, 'Falha ao publicar no Instagram'));
+    return data.id;
+  }
+  async function publishFacebook(media, caption){
+    const { data } = await postJson('/api/facebook-publish', { ...media, caption });
+    if (!data.id) throw new Error(errText(data, 'Falha ao publicar no Facebook'));
+    if (data.cta === true) log('Botão de WhatsApp aplicado no Facebook.', 'log-ok');
+    else if (data.cta === false) log(`Facebook não aceitou o botão de WhatsApp (${data.ctaError || 'sem detalhe'}). Publicado sem botão.`, 'log-err');
     return data.id;
   }
 
-  // ---------- Facebook ----------
-  async function publishFacebook(videoUrl, caption){
-    const r = await fetch('/api/facebook-publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ videoUrl, caption }) });
-    const data = await r.json();
-    if (!data.id) throw new Error(data.error || 'Falha ao publicar no Facebook');
-    log(data.cta ? 'Botão de WhatsApp aplicado no Facebook.' : `Facebook não aceitou o botão de WhatsApp (${data.ctaError || 'sem detalhe'}). Publicado sem botão.`, data.cta ? 'log-ok' : 'log-err');
-    return data.id;
-  }
-
-  // ---------- LinkedIn ----------
+  // LinkedIn
   const LI_KEY = 'cvl-linkedin';
   function liLoad(){ try{ return JSON.parse(localStorage.getItem(LI_KEY)||'null'); }catch(e){ return null; } }
+  function liOk(){ const li = liLoad(); return !!(li && li.token && li.expiresAt > Date.now()); }
   function liStatus(){
     const li = liLoad();
     const el = $('li-status');
@@ -401,82 +578,147 @@
     sessionStorage.setItem('li-state', state);
     location.href = '/api/linkedin-login?state=' + encodeURIComponent(state);
   });
-  async function publishLinkedIn(videoUrl, caption){
+  async function publishLinkedIn(media, caption){
     const li = liLoad();
-    const r = await fetch('/api/linkedin-publish', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ videoUrl, caption, title: $('yt-title').value, token: li.token, personId: li.sub }) });
-    const data = await r.json();
+    const { r, data } = await postJson('/api/linkedin-publish', { ...media, caption, footer: $('li-footer').value, title: $('yt-title').value, token: li.token, personId: li.sub });
     if (!r.ok || !data.id){
-      const detail = data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details)) : '';
-      if (r.status === 401) localStorage.removeItem(LI_KEY), liStatus();
-      throw new Error(`${data.error || 'Falha ao publicar no LinkedIn'}${detail ? ' — ' + detail : ''}`);
+      if (r.status === 401){ localStorage.removeItem(LI_KEY); liStatus(); }
+      throw new Error(errText(data, 'Falha ao publicar no LinkedIn'));
     }
     return data.id;
   }
   liHandleReturn(); liStatus();
 
-  // ---------- Fluxo principal ----------
+  // ---------- Publicar ----------
+  function setBusy(v){
+    busy = v;
+    $('publishBtn').disabled = v; $('nextBtn').disabled = v;
+    document.querySelectorAll('input[name="mode"], #net-yt, #net-ig, #net-fb, #net-li').forEach(el=>{
+      el.disabled = v || (el.id === 'net-yt' && mode === 'images');
+    });
+  }
+
   $('publishBtn').addEventListener('click', async ()=>{
-    if (!selectedFile){ log('Selecione um vídeo primeiro.', 'log-err'); return; }
-    $('publishBtn').disabled = true;
+    if (busy) return;
+    const nets = selectedNets();
+    if (!nets.length){ log('Marque pelo menos uma rede para publicar.', 'log-err'); return; }
+    if (mode === 'video' && !selectedFile && !(current && current.mode === 'video')){ log('Selecione um vídeo primeiro.', 'log-err'); return; }
+    if (mode === 'images' && !images.length && !(current && current.mode === 'images')){ log('Adicione pelo menos uma imagem JPEG.', 'log-err'); return; }
+    if (nets.includes('yt') && !posted.yt && !$('yt-title').value.trim()){ log('O YouTube precisa de um título.', 'log-err'); return; }
+    if (nets.includes('li') && !posted.li && !liOk()){ log('LinkedIn não está conectado (ou expirou). Clique em "Conectar LinkedIn" ou desmarque a rede.', 'log-err'); return; }
+
+    if (current && current.mode !== mode) invalidate();
+    setBusy(true);
     try{
-      log('Enviando vídeo para o GitHub...');
-      uploaded = await uploadToGitHub(selectedFile);
-      log(`Vídeo no GitHub: ${uploaded.rawUrl}`, 'log-ok');
-      $('deleteBtn').disabled = false;
-
-      const waitSeconds = 100;
-      log(`Aguardando o GitHub disponibilizar o vídeo (${waitSeconds}s)...`);
-      for (let elapsed = 0; elapsed < waitSeconds; elapsed += 15) {
-        await new Promise((r) => setTimeout(r, 15000));
-        const remaining = waitSeconds - (elapsed + 15);
-        if (remaining > 0) log(`Ainda aguardando... faltam ${remaining}s`);
-      }
-
-      log('Publicando no YouTube...');
-      const ytId = await publishYouTube(uploaded.rawUrl);
-      log(`YouTube publicado (id: ${ytId})`, 'log-ok');
-
-      log('Publicando no Instagram (pode levar até 2 min)...');
-      const igId = await publishInstagram(uploaded.rawUrl, $('ig-caption').value);
-      log(`Instagram publicado (id: ${igId})`, 'log-ok');
-
-      log('Publicando no Facebook...');
-      const fbId = await publishFacebook(uploaded.rawUrl, $('fb-caption').value);
-      log(`Facebook publicado (id: ${fbId})`, 'log-ok');
-
-      const li = liLoad();
-      if ($('li-enabled').checked){
-        if (li && li.token && li.expiresAt > Date.now()){
-          log('Publicando no LinkedIn...');
-          try{
-            const liId = await publishLinkedIn(uploaded.rawUrl, $('ig-caption').value);
-            log(`LinkedIn publicado (id: ${liId}). Vídeos podem levar alguns minutos para aparecer.`, 'log-ok');
-          }catch(e){ log(`Erro no LinkedIn: ${e.message}`, 'log-err'); }
+      // 1. Enviar a mídia ao GitHub (só se ainda não foi enviada para este post)
+      if (!current){
+        const urls = [];
+        if (mode === 'video'){
+          log('Enviando vídeo para o GitHub...');
+          const up = await uploadToGitHub(selectedFile, '');
+          urls.push(up.rawUrl);
         } else {
-          log('LinkedIn não conectado (ou expirado): pulando. Clique em "Conectar LinkedIn".', 'log-err');
+          for (let i = 0; i < images.length; i++){
+            log(`Enviando imagem ${i+1} de ${images.length} para o GitHub...`);
+            const up = await uploadToGitHub(images[i].file, String(i+1).padStart(2,'0') + '-');
+            urls.push(up.rawUrl);
+          }
+        }
+        current = { mode, urls };
+        posted = {};
+        log(mode === 'video' ? `Vídeo no GitHub: ${urls[0]}` : `${urls.length} imagem(ns) no GitHub, na ordem escolhida.`, 'log-ok');
+
+        if (mode === 'video'){
+          const waitSeconds = 100;
+          log(`Aguardando o GitHub disponibilizar o vídeo (${waitSeconds}s)...`);
+          for (let elapsed = 0; elapsed < waitSeconds; elapsed += 15){
+            await sleep(15000);
+            const remaining = waitSeconds - (elapsed + 15);
+            if (remaining > 0) log(`Ainda aguardando... faltam ${remaining}s`);
+          }
+        } else {
+          log('Aguardando o GitHub disponibilizar as imagens...');
+          const ready = await waitForUrls(urls, 90);
+          if (!ready) log('As imagens ainda não responderam; vou tentar publicar mesmo assim.', 'log-err');
         }
       }
 
-      log('Concluído. Você já pode apagar o vídeo do GitHub.', 'log-ok');
+      const media = current.mode === 'video' ? { videoUrl: current.urls[0] } : { imageUrls: current.urls };
+      const igCaption = $('ig-caption').value;
+      const results = {};
+
+      // 2. Publicar em cada rede escolhida (uma que falha não impede as outras)
+      for (const n of nets){
+        if (posted[n]){ log(`${NET_NAME[n]}: já publicado neste post, pulando.`); continue; }
+        log(`Publicando no ${NET_NAME[n]}${n === 'ig' ? ' (pode levar até 2 min)' : ''}...`);
+        try{
+          let id;
+          if (n === 'yt') id = await publishYouTube(current.urls[0]);
+          if (n === 'ig') id = await publishInstagram(media, igCaption);
+          if (n === 'fb') id = await publishFacebook(media, $('fb-caption').value);
+          if (n === 'li') id = await publishLinkedIn(media, igCaption);
+          posted[n] = true; results[n] = true;
+          log(`${NET_NAME[n]} publicado (id: ${id})${n === 'li' ? '. Pode levar alguns minutos para aparecer.' : ''}`, 'log-ok');
+        }catch(e){
+          results[n] = false;
+          log(`Erro no ${NET_NAME[n]}: ${e.message}`, 'log-err');
+        }
+      }
+
+      const failed = nets.filter(n => !posted[n]);
+      if (failed.length) log(`Faltou publicar em: ${failed.map(n=>NET_NAME[n]).join(', ')}. Corrija e clique em Publicar de novo: só essas serão tentadas.`, 'log-err');
+      else log('Concluído. Clique em "Próximo post" para apagar a mídia do GitHub e limpar o painel.', 'log-ok');
     }catch(e){
       log(`Erro: ${e.message}`, 'log-err');
     }finally{
-      $('publishBtn').disabled = false;
+      setBusy(false); refreshUi();
     }
   });
 
-  $('deleteBtn').addEventListener('click', async ()=>{
-    if (!uploaded) return;
-    $('deleteBtn').disabled = true;
+  // ---------- Próximo post: apaga do GitHub e limpa o painel ----------
+  function panelHasContent(){
+    return !!(selectedFile || images.length || draftFields.some(id => id !== 'li-footer' && $(id).value.trim()) || $('rawInput').value.trim());
+  }
+  function clearPanel(){
+    $('rawInput').value = ''; $('parseMsg').textContent = '';
+    fields.forEach(id => $(id).value = '');
+    $('li-footer').value = FOOTER_DEFAULT;
+    draftFields.forEach(updateCounter); syncFacebook();
+    $('videoFile').value = ''; selectedFile = null;
+    const v = $('videoPreview'); if (v.src) URL.revokeObjectURL(v.src); v.removeAttribute('src'); v.style.display = 'none';
+    images.forEach(i => URL.revokeObjectURL(i.url)); images = []; $('imgFiles').value = ''; $('imgErr').textContent = '';
+    renderImages();
+    current = null; posted = {};
+    saveDraft();
+    $('log').textContent = '';
+  }
+  $('nextBtn').addEventListener('click', async ()=>{
+    if (busy) return;
+    const nets = selectedNets();
+    if (current && nets.some(n => !posted[n])){
+      if (!confirm('Este post ainda não foi publicado em todas as redes marcadas. Apagar a mídia do GitHub e limpar tudo mesmo assim?')) return;
+    } else if (!current && panelHasContent()){
+      if (!confirm('Apagar tudo o que está no painel?')) return;
+    }
+    setBusy(true);
     try{
-      log('Apagando vídeo do GitHub...');
-      await deleteFromGitHub(uploaded);
-      log('Vídeo apagado do GitHub.', 'log-ok');
-      uploaded = null;
+      if (ghFiles.length){
+        if (!$('gh-token').value.trim()){ log('Preencha o token do GitHub para apagar os arquivos.', 'log-err'); return; }
+        log(`Apagando ${ghFiles.length} arquivo(s) do GitHub...`);
+        const left = [];
+        for (const f of ghFiles.slice()){
+          try{ await deleteFromGitHub(f); }
+          catch(e){ left.push(f); log(`Não consegui apagar ${f.path}: ${e.message}`, 'log-err'); }
+        }
+        ghFiles = left; saveGhFiles();
+        if (left.length){ log('Nada foi limpo do painel. Resolva o erro acima e clique em Próximo post de novo.', 'log-err'); return; }
+      }
+      clearPanel();
+      log('Pronto para o próximo post. Arquivos apagados do GitHub e painel limpo.', 'log-ok');
     }catch(e){
-      log(`Erro ao apagar: ${e.message}`, 'log-err');
-      $('deleteBtn').disabled = false;
+      log(`Erro: ${e.message}`, 'log-err');
+    }finally{
+      setBusy(false); refreshUi();
     }
   });
 })();
